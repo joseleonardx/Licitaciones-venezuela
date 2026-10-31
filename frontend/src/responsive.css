@@ -1,11 +1,55 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --app-bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-raised: #e8eff8;
+  --sidebar-bg: #edf2f8;
+  --border: #d7e0eb;
+  --border-strong: #b9c7d8;
+  --accent-strong: #1d4ed8;
+  --accent: #2563eb;
+  --accent-hover: #3b82f6;
+  --text-primary: #172338;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-accent: #1d4ed8;
+  --on-accent: #ffffff;
+  --success-text: #15803d;
+  --success-bg: rgba(22, 163, 74, 0.1);
+  --success-border: rgba(21, 128, 61, 0.3);
+  --warning-text: #a16207;
+  --warning-bg: rgba(202, 138, 4, 0.12);
+  --warning-border: rgba(161, 98, 7, 0.3);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #020817;
+  background: var(--app-bg);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #020817;
+  --surface: #0f172a;
+  --surface-raised: #15213d;
+  --sidebar-bg: #0b1220;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --accent-strong: #1d4ed8;
+  --accent: #2563eb;
+  --accent-hover: #3b82f6;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-accent: #93c5fd;
+  --on-accent: #ffffff;
+  --success-text: #4ade80;
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --success-border: rgba(74, 222, 128, 0.3);
+  --warning-text: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.12);
+  --warning-border: rgba(251, 191, 36, 0.3);
 }
 
 * {
@@ -24,6 +68,7 @@ body,
 body {
   min-height: 100vh;
   min-height: 100svh;
+  background: var(--app-bg);
 }
 
 button,
@@ -47,6 +92,8 @@ input:focus-visible {
   min-height: 100vh !important;
   min-height: 100svh !important;
   overflow-x: clip;
+  background: var(--app-bg) !important;
+  color: var(--text-primary) !important;
 }
 
 .auth-screen,
@@ -87,8 +134,14 @@ input:focus-visible {
   min-width: 0;
 }
 
+.home-sidebar {
+  background: var(--sidebar-bg) !important;
+  border-color: var(--border) !important;
+}
+
 .home-main {
   overflow: hidden;
+  background: var(--app-bg) !important;
 }
 
 .home-screen .card-list {
@@ -106,6 +159,78 @@ input:focus-visible {
 .home-screen input,
 .auth-screen input {
   min-width: 0;
+}
+
+.app-screen input {
+  color: var(--text-primary) !important;
+}
+
+.app-screen input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.auth-toolbar,
+.detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 12px;
+}
+
+.detail-toolbar {
+  justify-content: space-between;
+}
+
+.detail-toolbar .backButton {
+  margin-bottom: 0 !important;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.theme-toggle:hover,
+.desktop-nav-button:hover {
+  border-color: var(--accent);
+}
+
+.desktop-nav-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--app-bg);
+  color: var(--text-secondary);
+  text-align: left;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.desktop-nav-button[aria-current="page"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .detail-screen {
@@ -191,11 +316,11 @@ input:focus-visible {
     bottom: 0;
     left: 0;
     order: 2;
-    padding: 0 12px max(8px, env(safe-area-inset-bottom)) !important;
+    padding: 8px 16px max(8px, env(safe-area-inset-bottom)) !important;
     border: 0 !important;
-    border-top: 1px solid #1e293b !important;
-    background: rgba(11, 18, 32, 0.97) !important;
-    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border) !important;
+    background: color-mix(in srgb, var(--surface) 96%, transparent) !important;
+    backdrop-filter: blur(18px);
   }
 
   .home-sidebar > div:first-child,
@@ -204,28 +329,45 @@ input:focus-visible {
   }
 
   .home-sidebar-actions {
-    display: flex;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
     justify-content: center;
-    max-width: 480px;
+    width: min(100%, 440px);
     margin: 0 auto !important;
-    padding: 8px 0 0 !important;
-    border: 0;
-    background: transparent;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
   }
 
-  .home-sidebar-actions > div {
+  .home-sidebar-actions > div:first-child {
     display: none;
   }
 
-  .home-sidebar-actions > button {
-    flex: 1;
-    max-width: 240px;
+  .home-sidebar-actions > button.desktop-nav-button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
     min-width: 0;
-    width: auto !important;
-    margin: 0 !important;
-    padding: 9px 12px !important;
-    text-align: center !important;
+    min-height: 58px;
+    margin: 0;
+    padding: 6px 8px;
+    border-color: transparent;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .home-sidebar-actions > button.desktop-nav-button[aria-current="page"] {
+    border-color: var(--border);
+    background: var(--app-bg);
+    color: var(--accent-strong);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   }
 
   .home-main {
@@ -241,6 +383,12 @@ input:focus-visible {
   .home-screen input,
   .auth-screen input {
     font-size: 16px !important;
+  }
+
+  .home-header .theme-toggle {
+    min-width: 42px;
+    min-height: 42px;
+    padding: 8px;
   }
 
   .auth-screen > div {
@@ -271,9 +419,20 @@ input:focus-visible {
     gap: 6px !important;
   }
 
+  .home-header .web-header-chip,
+  .home-header .theme-toggle span {
+    display: none;
+  }
+
   .home-main {
     padding-right: 12px !important;
     padding-left: 12px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .home-header .web-header-chip {
+    display: none;
   }
 }
 

@@ -135,7 +135,7 @@ cd frontend
 npm run dev -- --host 0.0.0.0 --port 8081
 ```
 
-El frontend envía las peticiones a `VITE_API_URL` (por defecto `http://localhost:3000`). La PWA conserva en la pestaña actual la sesión y la vista (incluidos el detalle seleccionado y la sección del panel) al recargar; si el token venció, solicita iniciar sesión otra vez. El catálogo usa un diseño adaptable para escritorio, tablet y móvil; en pantallas pequeñas cambia la barra lateral por una navegación inferior y respeta las áreas seguras de iOS. Instala la PWA desde un navegador compatible cuando esté servida por HTTPS o en `localhost`.
+El frontend envía las peticiones a `VITE_API_URL` (por defecto `http://localhost:3000`). La PWA conserva en el navegador la sesión y la vista actual —incluidos el detalle seleccionado y la sección del panel— al recargar o volver a abrirla; valida el token al restaurar la sesión y solicita iniciar sesión si venció. La apariencia clara es la predeterminada, con opción oscura; la preferencia se guarda en el dispositivo. El catálogo usa un diseño adaptable para escritorio, tablet y móvil; en pantallas pequeñas muestra navegación inferior con áreas táctiles y respeta las áreas seguras de iOS. Instala la PWA desde un navegador compatible cuando esté servida por HTTPS o en `localhost`.
 
 ### Prototipo FastAPI (opcional)
 

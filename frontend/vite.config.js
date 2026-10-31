@@ -12,8 +12,8 @@ export default defineConfig({
         name: 'Licitaciones VZLA',
         short_name: 'LVZLA',
         description: 'Panel de licitaciones y postulaciones empresariales',
-        theme_color: '#020817',
-        background_color: '#020817',
+        theme_color: '#f4f7fb',
+        background_color: '#f4f7fb',
         display: 'standalone',
         start_url: '/',
         icons: [
