@@ -1,0 +1,18 @@
+# Entorno virtual
+venv/
+env/
+ENV/
+
+# Python cache y compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Variables de entorno secretas (¡Nunca se suben a GitHub!)
+.env
+
+# Archivos de subida temporal locales de PDFs
+uploads/
+
+# Configuración del editor
+.vscode/

@@ -1,0 +1,42 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+dist/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python artifacts (if present in tooling)
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+
+# Runtime / uploads
+uploads/*
+!uploads/.gitkeep
+
+# Editor / OS
+.DS_Store
+.vscode/
+*.swp
+*.swo
+
+# Cache
+*.cache

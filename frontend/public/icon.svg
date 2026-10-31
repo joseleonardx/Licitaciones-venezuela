@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Licitaciones VZLA">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#020817"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+  <path d="M38 36h52a8 8 0 0 1 8 8v7H30v-7a8 8 0 0 1 8-8zm-8 25h68v31a16 16 0 0 1-16 16H46a16 16 0 0 1-16-16V61zm26 12h16v15H56V73zm-18 0h12v15H38V73zm44 0h12v15H82V73z" fill="#fff"/>
+</svg>
