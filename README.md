@@ -56,6 +56,7 @@ project/
 ├── tests/
 ├── uploads/
 ├── frontend/                 # PWA React/Vite
+│   └── src/responsive.css    # Diseño adaptable para escritorio, Android e iOS
 ├── app/                      # Prototipo FastAPI no integrado
 ├── render.yaml               # Despliegue de la API Node en Render
 ├── package.json
@@ -134,7 +135,7 @@ cd frontend
 npm run dev -- --host 0.0.0.0 --port 8081
 ```
 
-El frontend envía las peticiones a `VITE_API_URL` (por defecto `http://localhost:3000`). Instala la PWA desde un navegador compatible cuando esté servida por HTTPS o en `localhost`.
+El frontend envía las peticiones a `VITE_API_URL` (por defecto `http://localhost:3000`). El catálogo usa un diseño adaptable para escritorio, tablet y móvil; en pantallas pequeñas cambia la barra lateral por una navegación inferior y respeta las áreas seguras de iOS. Instala la PWA desde un navegador compatible cuando esté servida por HTTPS o en `localhost`.
 
 ### Prototipo FastAPI (opcional)
 

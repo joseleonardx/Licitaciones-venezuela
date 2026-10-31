@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, Search, ShieldCheck, UploadCloud } from 'lucide-react';
 import { apiRequest, mapLicitation } from './src/services/api.js';
+import './src/responsive.css';
 
 const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 const validatePassword = (value) => value.trim().length >= 6;
@@ -55,7 +56,7 @@ function LoginScreen({ onLogin, onGoToRegister }) {
   };
 
   return (
-    <div style={styles.screen}>
+    <div className="app-screen auth-screen" style={styles.screen}>
       <div style={styles.contentCenter}>
         <div style={styles.logoBox}><ShieldCheck size={28} color="#60a5fa" /></div>
         <div style={styles.eyebrow}>Acceso empresarial</div>
@@ -133,7 +134,7 @@ function RegisterScreen({ onRegister, onBack }) {
   };
 
   return (
-    <div style={styles.screen}>
+    <div className="app-screen auth-screen" style={styles.screen}>
       <div style={styles.contentCenter}>
         <div style={styles.logoBox}><ShieldCheck size={28} color="#60a5fa" /></div>
         <div style={styles.eyebrow}>Registro empresarial</div>
@@ -213,12 +214,10 @@ function HomeScreen({ session, onLogout, onOpenDetail }) {
 
   const renderCatalog = () => (
     <div style={styles.spaceY}>
-      <div style={styles.kpiGrid}>
+      <div className="kpi-grid" style={styles.kpiGrid}>
         <div style={styles.kpiCard}><BriefcaseBusiness size={16} color="#60a5fa" /><div style={styles.kpiTextWrap}><div style={styles.kpiLabel}>Licitaciones activas</div><div style={styles.kpiValue}>{licitaciones.length}</div></div></div>
         <div style={styles.kpiCard}><ShieldCheck size={16} color="#4ade80" /><div style={styles.kpiTextWrap}><div style={styles.kpiLabel}>Postulaciones</div><div style={styles.kpiValueGreen}>{submittedProposals.length}</div></div></div>
       </div>
-
-      <div style={styles.searchBox}><Search size={16} color="#94a3b8" /><input style={styles.searchInput} value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Buscar obra, entidad o código" /></div>
 
       <div style={styles.filterGroup}>
         <div style={styles.filterHeaderRow}><span style={styles.filterHeader}>Sector económico</span><span style={styles.filterCounter}>{filtered.length} encontrados</span></div>
@@ -234,17 +233,22 @@ function HomeScreen({ session, onLogout, onOpenDetail }) {
         </div>
       </div>
 
-      <div style={styles.cardList}>
+      <div className="card-list" style={styles.cardList}>
         {error && <div style={styles.emptyState}><div style={styles.emptyTitle}>No se pudo cargar el catálogo</div><div style={styles.emptyText}>{error}</div><button type="button" style={styles.primaryButton} onClick={loadDashboard}>Reintentar</button></div>}
         {loading && !error ? <div style={styles.emptyState}><div style={styles.emptyText}>Cargando licitaciones...</div></div> : null}
         {!loading && filtered.length === 0 && !error ? <div style={styles.emptyState}><div style={styles.emptyTitle}>No hay resultados</div><div style={styles.emptyText}>Prueba con otra palabra clave o cambia los filtros.</div></div> : null}
 
         {filtered.map((item) => (
-          <div key={item.id} style={styles.card} onClick={() => onOpenDetail(item)}>
+          <div key={item.id} style={styles.card} onClick={() => onOpenDetail(item)} role="button" tabIndex={0} onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onOpenDetail(item);
+            }
+          }}>
             <div style={styles.cardTop}><span style={styles.code}>{item.id}</span><span style={{ ...styles.statusPill, ...(item.status === 'Abierta' ? styles.statusOpen : styles.statusReview) }}>{item.status}</span></div>
             <div style={styles.cardTitle}>{item.title}</div>
             <div style={styles.cardMetaRow}><Building2 size={13} color="#60a5fa" /><span style={styles.cardMetaText}>{item.organization}</span></div>
-            <div style={styles.cardInfoGrid}>
+            <div className="card-info-grid" style={styles.cardInfoGrid}>
               <div style={styles.cardInfoBox}><div style={styles.infoLabel}>Ubicación</div><div style={styles.infoValue}>{item.location}</div></div>
               <div style={styles.cardInfoBox}><div style={styles.infoLabel}>Monto</div><div style={styles.infoValueGreen}>{item.budget}</div></div>
             </div>
@@ -270,8 +274,8 @@ function HomeScreen({ session, onLogout, onOpenDetail }) {
   );
 
   return (
-    <div style={styles.screen}>
-      <div style={styles.headerBar}>
+    <div className="app-screen home-screen" style={styles.screen}>
+      <div className="home-header" style={styles.headerBar}>
         <div style={styles.brandWrap}>
           <div style={styles.brandLogo}>LV</div>
           <div>
@@ -282,18 +286,18 @@ function HomeScreen({ session, onLogout, onOpenDetail }) {
         <div style={styles.headerRight}><div style={styles.webHeaderChip}>Online</div><button type="button" onClick={onLogout} style={styles.logoutButton}>Salir</button></div>
       </div>
 
-      <div style={styles.webWorkspace}>
-        <aside style={styles.sidebar}>
+      <div className="home-workspace" style={styles.webWorkspace}>
+        <aside className="home-sidebar" style={styles.sidebar}>
           <div style={styles.webSidebarCard}><div style={styles.webSidebarLabel}>Resumen</div><div style={styles.webSidebarValue}>{licitaciones.length}</div><div style={styles.webSidebarMeta}>licitaciones disponibles</div></div>
           <div style={styles.webSidebarCard}><div style={styles.webSidebarLabel}>Rif</div><div style={styles.webSidebarValueSmall}>{session.rif || 'Autenticada'}</div><div style={styles.webSidebarMeta}>{session.name || session.razonSocial || 'Empresa'}</div></div>
-          <div style={styles.webSidebarCard}>
+          <div className="home-sidebar-actions" style={styles.webSidebarCard}>
             <div style={styles.webSidebarLabel}>Acciones rápidas</div>
             <button type="button" style={{ ...styles.webMenuItem, ...(activeTab === 'home' ? styles.webMenuItemActive : {}) }} onClick={() => setActiveTab('home')}>Catálogo</button>
             <button type="button" style={{ ...styles.webMenuItem, ...(activeTab === 'applications' ? styles.webMenuItemActive : {}) }} onClick={() => setActiveTab('applications')}>Postulaciones</button>
           </div>
         </aside>
 
-        <main style={styles.mainPane}>
+        <main className="home-main" style={styles.mainPane}>
           <div style={styles.searchBox}><Search size={16} color="#94a3b8" /><input style={styles.searchInput} value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Buscar licitación, entidad o código..." /></div>
           {activeTab === 'home' && renderCatalog()}
           {activeTab === 'applications' && renderApplications()}
@@ -305,14 +309,14 @@ function HomeScreen({ session, onLogout, onOpenDetail }) {
 
 function DetailScreen({ licitacion, onBack, onApply, session }) {
   return (
-    <div style={styles.screen}>
+    <div className="app-screen detail-screen" style={styles.screen}>
       <div style={styles.detailContent}>
         <button type="button" onClick={onBack} style={styles.backButton}><ArrowLeft size={18} color="#dfe7f2" /> Volver</button>
         <div style={styles.detailCard}>
           <div style={styles.cardTop}><span style={styles.code}>{licitacion.id}</span><span style={{ ...styles.statusPill, ...(licitacion.status === 'Abierta' ? styles.statusOpen : styles.statusReview) }}>{licitacion.status}</span></div>
           <div style={styles.detailTitle}>{licitacion.title}</div>
           <div style={styles.detailOrg}>{licitacion.organization}</div>
-          <div style={styles.detailGrid}>
+          <div className="detail-grid" style={styles.detailGrid}>
             <div style={styles.detailBox}><div style={styles.infoLabel}>Presupuesto</div><div style={styles.infoValueGreen}>{licitacion.budget}</div></div>
             <div style={styles.detailBox}><div style={styles.infoLabel}>Vence</div><div style={styles.infoValue}>{licitacion.deadline}</div></div>
           </div>
@@ -375,7 +379,7 @@ function ApplyScreen({ licitacion, session, onBack, onSubmit }) {
   };
 
   return (
-    <div style={styles.screen}>
+    <div className="app-screen detail-screen" style={styles.screen}>
       <div style={styles.detailContent}>
         <button type="button" onClick={onBack} style={styles.backButton}><ArrowLeft size={18} color="#dfe7f2" /> Cancelar</button>
         <div style={styles.detailCard}>

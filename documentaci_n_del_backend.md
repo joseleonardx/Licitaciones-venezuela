@@ -10,6 +10,7 @@ El directorio `app/` conserva un prototipo FastAPI/SQLAlchemy independiente. No 
 frontend/                     React, Vite, vite-plugin-pwa
   App.jsx                     Pantallas y flujo de usuario
   src/services/api.js         Cliente HTTP y adaptación de licitaciones
+  src/responsive.css         Layout adaptable y áreas seguras móviles
 src/
   app.js                      Fábrica Express, CORS, rutas y healthchecks
   server.js                   Listener y apagado ordenado
@@ -91,7 +92,7 @@ npm run build
 npm run preview
 ```
 
-`frontend/vite.config.js` configura el service worker y manifiesto con `vite-plugin-pwa`; el icono web está en `frontend/public/icon.svg`. No se utiliza Expo Go ni se construyen binarios móviles.
+`frontend/vite.config.js` configura el service worker y manifiesto con `vite-plugin-pwa`; el icono web está en `frontend/public/icon.svg`. El CSS responsive adapta las pantallas de acceso, catálogo y postulación a móvil/tablet, convierte la navegación lateral en una barra inferior y contempla safe areas de iOS. No se utiliza Expo Go ni se construyen binarios móviles.
 
 Los PDF se almacenan localmente en `uploads/` y se sirven mediante `/uploads`. El servicio Render definido en `render.yaml` usa `/ready` como healthcheck; requiere `DATABASE_URL`, `SECRET_KEY` y `FRONTEND_ORIGINS`. Para la PWA en Vercel, define `VITE_API_URL` con la URL HTTPS de Render (sin `/api/v1`) y configura en Render el origen exacto de Vercel. Actualiza `FRONTEND_ORIGINS` cuando cambien los dominios de producción o preview. Aplica las migraciones con `npm run migrate` desde un entorno que tenga la `DATABASE_URL` de producción antes de usar la API.
 
