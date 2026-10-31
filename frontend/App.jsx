@@ -6,6 +6,37 @@ import './src/responsive.css';
 const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 const validatePassword = (value) => value.trim().length >= 6;
 const validateRif = (value) => /^[JEVGCP]-\d{8}-\d$/i.test(value.trim());
+const APP_STATE_KEY = 'licitaciones-vzla-app-state';
+
+function readPersistedAppState() {
+  try {
+    const storedState = sessionStorage.getItem(APP_STATE_KEY);
+    if (!storedState) {
+      return { screen: 'login', session: null, selectedLicitacion: null, activeTab: 'home' };
+    }
+
+    const parsedState = JSON.parse(storedState);
+    const session = typeof parsedState.session?.token === 'string' ? parsedState.session : null;
+    const validScreens = ['login', 'register', 'home', 'detail', 'apply'];
+    let screen = validScreens.includes(parsedState.screen) ? parsedState.screen : 'login';
+    const selectedLicitacion = typeof parsedState.selectedLicitacion?.id === 'string'
+      ? parsedState.selectedLicitacion
+      : null;
+
+    if (['home', 'detail', 'apply'].includes(screen) && !session) screen = 'login';
+    if (['detail', 'apply'].includes(screen) && !selectedLicitacion) screen = 'home';
+
+    return {
+      screen,
+      session,
+      selectedLicitacion,
+      activeTab: parsedState.activeTab === 'applications' ? 'applications' : 'home',
+    };
+  } catch (error) {
+    console.error('No se pudo restaurar el estado guardado de la aplicación.', error);
+    return { screen: 'login', session: null, selectedLicitacion: null, activeTab: 'home' };
+  }
+}
 
 function LoginScreen({ onLogin, onGoToRegister }) {
   const [rif, setRif] = useState('');
@@ -167,11 +198,10 @@ function RegisterScreen({ onRegister, onBack }) {
   );
 }
 
-function HomeScreen({ session, onLogout, onOpenDetail }) {
+function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab }) {
   const [searchText, setSearchText] = useState('');
   const [selectedSector, setSelectedSector] = useState('Todos');
   const [selectedStatus, setSelectedStatus] = useState('Todas');
-  const [activeTab, setActiveTab] = useState('home');
   const [licitaciones, setLicitaciones] = useState([]);
   const [submittedProposals, setSubmittedProposals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -292,8 +322,8 @@ function HomeScreen({ session, onLogout, onOpenDetail }) {
           <div style={styles.webSidebarCard}><div style={styles.webSidebarLabel}>Rif</div><div style={styles.webSidebarValueSmall}>{session.rif || 'Autenticada'}</div><div style={styles.webSidebarMeta}>{session.name || session.razonSocial || 'Empresa'}</div></div>
           <div className="home-sidebar-actions" style={styles.webSidebarCard}>
             <div style={styles.webSidebarLabel}>Acciones rápidas</div>
-            <button type="button" style={{ ...styles.webMenuItem, ...(activeTab === 'home' ? styles.webMenuItemActive : {}) }} onClick={() => setActiveTab('home')}>Catálogo</button>
-            <button type="button" style={{ ...styles.webMenuItem, ...(activeTab === 'applications' ? styles.webMenuItemActive : {}) }} onClick={() => setActiveTab('applications')}>Postulaciones</button>
+            <button type="button" style={{ ...styles.webMenuItem, ...(activeTab === 'home' ? styles.webMenuItemActive : {}) }} onClick={() => onChangeTab('home')}>Catálogo</button>
+            <button type="button" style={{ ...styles.webMenuItem, ...(activeTab === 'applications' ? styles.webMenuItemActive : {}) }} onClick={() => onChangeTab('applications')}>Postulaciones</button>
           </div>
         </aside>
 
@@ -399,47 +429,105 @@ function ApplyScreen({ licitacion, session, onBack, onSubmit }) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState('login');
-  const [session, setSession] = useState(null);
-  const [selectedLicitacion, setSelectedLicitacion] = useState(null);
+  const [appState, setAppState] = useState(readPersistedAppState);
+  const { screen, session, selectedLicitacion, activeTab } = appState;
+
+  useEffect(() => {
+    try {
+      if (screen === 'login' && !session) {
+        sessionStorage.removeItem(APP_STATE_KEY);
+        return;
+      }
+
+      sessionStorage.setItem(APP_STATE_KEY, JSON.stringify(appState));
+    } catch (error) {
+      console.error('No se pudo guardar el estado de la aplicación para la próxima recarga.', error);
+    }
+  }, [appState]);
+
+  useEffect(() => {
+    if (!session?.token) return undefined;
+
+    let isActive = true;
+    const restoredToken = session.token;
+
+    apiRequest('/auth/me', { token: restoredToken }).then((company) => {
+      if (isActive) {
+        setAppState((current) => current.session?.token === restoredToken
+          ? { ...current, session: { ...company, token: restoredToken } }
+          : current);
+      }
+    }).catch((error) => {
+      if (!isActive) return;
+
+      if (error.status === 401 || error.status === 403) {
+        setAppState((current) => current.session?.token === restoredToken
+          ? { ...current, screen: 'login', session: null, selectedLicitacion: null }
+          : current);
+        alert('Tu sesión venció o ya no es válida. Inicia sesión nuevamente.');
+      } else {
+        console.error('No se pudo validar la sesión restaurada.', error);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const handleLogin = (company) => {
-    setSession(company);
-    setScreen('home');
+    setAppState((current) => ({ ...current, screen: 'home', session: company, selectedLicitacion: null }));
   };
 
   const handleRegister = (company) => {
-    setSession(company);
-    setScreen('home');
+    setAppState((current) => ({ ...current, screen: 'home', session: company, selectedLicitacion: null }));
   };
 
   const handleLogout = () => {
-    setSession(null);
-    setSelectedLicitacion(null);
-    setScreen('login');
+    setAppState({ screen: 'login', session: null, selectedLicitacion: null, activeTab: 'home' });
   };
 
   const openDetail = (licitation) => {
-    setSelectedLicitacion(licitation);
-    setScreen('detail');
+    setAppState((current) => ({ ...current, selectedLicitacion: licitation, screen: 'detail' }));
   };
 
   const openApply = (licitation) => {
-    setSelectedLicitacion(licitation);
-    setScreen('apply');
+    setAppState((current) => ({ ...current, selectedLicitacion: licitation, screen: 'apply' }));
   };
 
   const submitBid = () => {
-    setScreen('home');
+    setAppState((current) => ({ ...current, screen: 'home', selectedLicitacion: null }));
   };
 
-  if (screen === 'login') return <LoginScreen onLogin={handleLogin} onGoToRegister={() => setScreen('register')} />;
-  if (screen === 'register') return <RegisterScreen onRegister={handleRegister} onBack={() => setScreen('login')} />;
-  if (screen === 'home' && session) return <HomeScreen session={session} onLogout={handleLogout} onOpenDetail={openDetail} />;
-  if (screen === 'detail' && selectedLicitacion) return <DetailScreen licitacion={selectedLicitacion} session={session} onBack={() => setScreen('home')} onApply={openApply} />;
-  if (screen === 'apply' && selectedLicitacion) return <ApplyScreen licitacion={selectedLicitacion} session={session} onBack={() => setScreen('detail')} onSubmit={submitBid} />;
+  if (screen === 'login') return <LoginScreen onLogin={handleLogin} onGoToRegister={() => setAppState((current) => ({ ...current, screen: 'register' }))} />;
+  if (screen === 'register') return <RegisterScreen onRegister={handleRegister} onBack={() => setAppState((current) => ({ ...current, screen: 'login' }))} />;
+  if (screen === 'home' && session) {
+    return <HomeScreen
+      session={session}
+      onLogout={handleLogout}
+      onOpenDetail={openDetail}
+      activeTab={activeTab}
+      onChangeTab={(tab) => setAppState((current) => ({ ...current, activeTab: tab }))}
+    />;
+  }
+  if (screen === 'detail' && selectedLicitacion && session) {
+    return <DetailScreen
+      licitacion={selectedLicitacion}
+      session={session}
+      onBack={() => setAppState((current) => ({ ...current, screen: 'home', selectedLicitacion: null }))}
+      onApply={openApply}
+    />;
+  }
+  if (screen === 'apply' && selectedLicitacion && session) {
+    return <ApplyScreen
+      licitacion={selectedLicitacion}
+      session={session}
+      onBack={() => setAppState((current) => ({ ...current, screen: 'detail' }))}
+      onSubmit={submitBid}
+    />;
+  }
 
-  return <LoginScreen onLogin={handleLogin} onGoToRegister={() => setScreen('register')} />;
+  return <LoginScreen onLogin={handleLogin} onGoToRegister={() => setAppState((current) => ({ ...current, screen: 'register' }))} />;
 }
 
 const styles = {

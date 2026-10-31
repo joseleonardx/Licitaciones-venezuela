@@ -26,7 +26,9 @@ export async function apiRequest(path, { token, ...options } = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(payload.error?.message || payload.message || `La solicitud falló (HTTP ${response.status}).`);
+    const error = new Error(payload.error?.message || payload.message || `La solicitud falló (HTTP ${response.status}).`);
+    error.status = response.status;
+    throw error;
   }
 
   return payload.data;
