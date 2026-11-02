@@ -10,6 +10,33 @@ const statusClassName = (status) => status.toLowerCase().normalize('NFD').replac
 const APP_STATE_KEY = 'licitaciones-vzla-app-state';
 const APP_THEME_KEY = 'licitaciones-vzla-theme';
 
+function getInstitutionLogo(organization) {
+  const normalizedName = organization.toLocaleLowerCase('es');
+  const logoFiles = [
+    { match: 'pdvsa', file: 'pdvsa-petroleo-sa.png' },
+    { match: 'salud', file: 'mpps-salud.png' },
+    { match: 'metro de caracas', file: 'metro-de-caracas.png' },
+    { match: 'cantv', file: 'cantv-telecomunicaciones.png' },
+    { match: 'alimentaci', file: 'ministerio-alimentacion.png' },
+  ];
+  const logo = logoFiles.find(({ match }) => normalizedName.includes(match));
+
+  return logo ? `/institutions/${logo.file}` : null;
+}
+
+function InstitutionLogo({ organization }) {
+  const logo = getInstitutionLogo(organization);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <span className="institution-logo" aria-hidden="true">
+      {logo && !imageFailed
+        ? <img src={logo} alt="" onError={() => setImageFailed(true)} />
+        : <Building2 size={17} />}
+    </span>
+  );
+}
+
 function readPreferredTheme() {
   try {
     return localStorage.getItem(APP_THEME_KEY) === 'dark' ? 'dark' : 'light';
@@ -309,7 +336,7 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
               <h3 className="tender-card__title">{item.title}</h3>
             </div>
             <div className="tender-card__organization">
-              <Building2 size={16} aria-hidden="true" />
+              <InstitutionLogo organization={item.organization} />
               <span>{item.organization}</span>
             </div>
             <div className="tender-card__facts">
