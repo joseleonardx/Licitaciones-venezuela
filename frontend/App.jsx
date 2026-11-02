@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, ClipboardList, Moon, Search, ShieldCheck, Sun, UploadCloud } from 'lucide-react';
+import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, ClipboardList, Download, FileText, Moon, Search, ShieldCheck, Sparkles, Sun, UploadCloud } from 'lucide-react';
 import { apiRequest, mapLicitation } from './src/services/api.js';
 import './src/responsive.css';
 
@@ -86,6 +86,24 @@ function ThemeToggle({ theme, onToggleTheme }) {
       <span>{theme === 'light' ? 'Oscuro' : 'Claro'}</span>
     </button>
   );
+}
+
+function getTenderAttachment(attachment) {
+  if (typeof attachment === 'string') {
+    const value = attachment.trim();
+    return { name: value.split(/[\\/]/).pop() || value, url: /^https?:\/\/|^\//i.test(value) ? value : null };
+  }
+
+  if (!attachment || typeof attachment !== 'object') return null;
+
+  const name = attachment.name || attachment.filename || attachment.fileName || attachment.url || '';
+  const url = attachment.url || attachment.href || '';
+  if (typeof name !== 'string' || !name.trim()) return null;
+
+  return {
+    name: name.split(/[\\/]/).pop(),
+    url: typeof url === 'string' && (/^https?:\/\/|^\//i.test(url)) ? url : null,
+  };
 }
 
 function LoginScreen({ onLogin, onGoToRegister, theme, onToggleTheme }) {
@@ -346,7 +364,7 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
               </div>
               <div className="tender-card__fact tender-card__fact--budget">
                 <span className="tender-card__label">Monto base estimado</span>
-                <span className="tender-card__fact-value">{item.budget}</span>
+                <span className="tender-card__fact-value">{item.budget !== 'No especificado' && item.budgetCurrency ? `$${item.budget} ${item.budgetCurrency}` : item.budget}</span>
               </div>
             </div>
             <div className="tender-card__footer">
@@ -412,11 +430,91 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
 }
 
 function DetailScreen({ licitacion, onBack, onApply, session, theme, onToggleTheme }) {
+  const isPdvsa = licitacion.organization.toLocaleLowerCase('es').includes('pdvsa');
+  const isMpps = licitacion.organization.toLocaleLowerCase('es').includes('mpps')
+    || licitacion.organization.toLocaleLowerCase('es').includes('ministerio del poder popular para la salud');
+  const isMetro = licitacion.organization.toLocaleLowerCase('es').includes('metro de caracas');
+  const isCantv = licitacion.organization.toLocaleLowerCase('es').includes('cantv');
+  const isMinal = licitacion.organization.toLocaleLowerCase('es').includes('alimentaci');
+  const attachments = licitacion.attachments.map(getTenderAttachment).filter(Boolean);
+
   return (
     <div className="app-screen detail-screen" style={styles.screen}>
       <div style={styles.detailContent}>
         <div className="detail-toolbar"><button type="button" onClick={onBack} style={styles.backButton}><ArrowLeft size={18} color="var(--text-primary)" /> Volver</button><ThemeToggle theme={theme} onToggleTheme={onToggleTheme} /></div>
-        <div style={styles.detailCard}>
+        <div className={`detail-card${isPdvsa || isMpps || isMetro || isCantv || isMinal ? ' pdvsa-detail-card' : ''}${isMpps ? ' mpps-detail-card' : ''}${isMetro ? ' metro-detail-card' : ''}${isCantv ? ' cantv-detail-card' : ''}${isMinal ? ' minal-detail-card' : ''}`} style={styles.detailCard}>
+          {isPdvsa || isMpps || isMetro || isCantv || isMinal ? (
+            <>
+              <div className="pdvsa-detail__header">
+                <span style={styles.code}>{licitacion.referenceCode}</span>
+                <span className={`tender-card__status tender-card__status--${statusClassName(licitacion.status)}`}>{licitacion.status}</span>
+              </div>
+              <h1 className="pdvsa-detail__title">{licitacion.title}</h1>
+
+              <div className="pdvsa-detail__contractor">
+                <InstitutionLogo organization={licitacion.organization} />
+                <div className="pdvsa-detail__contractor-copy">
+                  <span className="pdvsa-detail__label">Ente contratante</span>
+                  <strong>{licitacion.organization}</strong>
+                </div>
+              </div>
+
+              <div className="pdvsa-detail__facts">
+                <div className="pdvsa-detail__fact">
+                  <span className="pdvsa-detail__label">Presupuesto referencial</span>
+                  <strong className="pdvsa-detail__budget">
+                    {licitacion.budgetAmount
+                      ? `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(licitacion.budgetAmount)} ${licitacion.budgetCurrency || ''}`.trim()
+                      : licitacion.budget}
+                  </strong>
+                </div>
+                <div className="pdvsa-detail__fact">
+                  <span className="pdvsa-detail__label">Límite de recepción</span>
+                  <strong>{licitacion.receiptLimit}</strong>
+                </div>
+              </div>
+
+              <section className="pdvsa-detail__section">
+                <h2>Descripción de la Contratación</h2>
+                <p className="pdvsa-detail__description">{licitacion.description}</p>
+              </section>
+
+              <section className="pdvsa-detail__section">
+                <h2>Requisitos Legales y Términos</h2>
+                {licitacion.requirements.length === 0
+                  ? <p className="pdvsa-detail__empty">No se especificaron requisitos adicionales.</p>
+                  : <ul className="pdvsa-detail__requirements">
+                    {licitacion.requirements.map((requirement) => (
+                      <li key={requirement}><CheckCircle2 size={15} aria-hidden="true" /><span>{requirement}</span></li>
+                    ))}
+                  </ul>}
+              </section>
+
+              <section className="pdvsa-detail__section">
+                <h2>Descargar Pliegos Oficiales</h2>
+                <div className="pdvsa-detail__attachments">
+                  {attachments.map((attachment) => (
+                    attachment.url
+                      ? <a className="pdvsa-detail__attachment" href={attachment.url} key={`${attachment.name}-${attachment.url}`} target="_blank" rel="noreferrer">
+                        <FileText size={15} aria-hidden="true" /><span>{attachment.name}</span><Download size={15} aria-hidden="true" />
+                      </a>
+                      : <div className="pdvsa-detail__attachment pdvsa-detail__attachment--unavailable" key={attachment.name} aria-disabled="true" title="El archivo oficial todavía no se ha cargado">
+                        <FileText size={15} aria-hidden="true" /><span>{attachment.name}</span><span className="pdvsa-detail__pending">Pendiente</span>
+                      </div>
+                  ))}
+                </div>
+                {attachments.some((attachment) => !attachment.url) && (
+                  <p className="pdvsa-detail__notice">Los archivos oficiales estarán disponibles cuando sean cargados.</p>
+                )}
+              </section>
+
+              <button type="button" style={styles.primaryButton} onClick={() => onApply(licitacion, session)}>
+                {(isMpps || isMetro || isCantv || isMinal) && <Sparkles size={16} aria-hidden="true" />}
+                {isMpps || isMetro || isCantv || isMinal ? 'Iniciar Postulación Oficial' : 'Postularme'}
+              </button>
+            </>
+          ) : (
+            <>
           <div style={styles.cardTop}><span style={styles.code}>{licitacion.id}</span><span className={`tender-card__status tender-card__status--${statusClassName(licitacion.status)}`}>{licitacion.status}</span></div>
           <div style={styles.detailTitle}>{licitacion.title}</div>
           <div style={styles.detailOrg}>{licitacion.organization}</div>
@@ -434,6 +532,8 @@ function DetailScreen({ licitacion, onBack, onApply, session, theme, onToggleThe
           ))}
 
           <button type="button" style={styles.primaryButton} onClick={() => onApply(licitacion, session)}>Postularme</button>
+            </>
+          )}
         </div>
       </div>
     </div>
