@@ -17,6 +17,9 @@
   --success-text: #15803d;
   --success-bg: rgba(22, 163, 74, 0.1);
   --success-border: rgba(21, 128, 61, 0.3);
+  --info-text: #1d4ed8;
+  --info-bg: rgba(37, 99, 235, 0.1);
+  --info-border: rgba(29, 78, 216, 0.3);
   --warning-text: #a16207;
   --warning-bg: rgba(202, 138, 4, 0.12);
   --warning-border: rgba(161, 98, 7, 0.3);
@@ -47,6 +50,9 @@
   --success-text: #4ade80;
   --success-bg: rgba(34, 197, 94, 0.12);
   --success-border: rgba(74, 222, 128, 0.3);
+  --info-text: #60a5fa;
+  --info-bg: rgba(59, 130, 246, 0.12);
+  --info-border: rgba(96, 165, 250, 0.3);
   --warning-text: #fbbf24;
   --warning-bg: rgba(251, 191, 36, 0.12);
   --warning-border: rgba(251, 191, 36, 0.3);
@@ -148,6 +154,176 @@ input:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+}
+
+.tender-card {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.045);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.tender-card:hover,
+.tender-card:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+.tender-card:active {
+  transform: scale(0.995);
+}
+
+.tender-card__header,
+.tender-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tender-card__number {
+  min-width: 0;
+  max-width: 70%;
+  padding: 5px 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--app-bg);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tender-card__status {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.tender-card__status--abierta {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.tender-card__status--en-evaluacion {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.tender-card__status--adjudicada {
+  border-color: var(--info-border);
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.tender-card__work {
+  display: grid;
+  gap: 4px;
+}
+
+.tender-card__label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.tender-card__title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 780;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.tender-card__organization {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--text-accent);
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.tender-card__organization svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.tender-card__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--app-bg);
+}
+
+.tender-card__fact {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tender-card__fact-value {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.tender-card__fact--budget .tender-card__fact-value {
+  color: var(--success-text);
+}
+
+.tender-card__footer {
+  padding-top: 2px;
+}
+
+.tender-card__deadline {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.tender-card__link {
+  flex: 0 0 auto;
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.tender-card__link span {
+  padding-left: 2px;
+  font-size: 17px;
+  vertical-align: -1px;
 }
 
 .home-screen .card-info-grid,
@@ -296,9 +472,27 @@ input:focus-visible {
     font-size: 17px !important;
   }
 
-  .home-screen .card > div:first-child > span:first-child {
-    max-width: 72%;
-    overflow-wrap: anywhere;
+  .statusRow {
+    flex-wrap: wrap;
+  }
+
+  .statusRow > button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
+
+  .tender-card {
+    gap: 11px;
+    padding: 13px;
+  }
+
+  .tender-card__title {
+    font-size: 16px;
+  }
+
+  .tender-card__facts {
+    gap: 6px;
+    padding: 9px;
   }
 
   .home-workspace {

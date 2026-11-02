@@ -37,13 +37,34 @@ export async function apiRequest(path, { token, ...options } = {}) {
 export function mapLicitation(licitation) {
   const closingDate = licitation.closingDate ? new Date(licitation.closingDate) : null;
   const budget = Number(licitation.budget);
+  const rawStatus = String(licitation.status || '').trim().toLowerCase().replace(/[_-]+/g, ' ');
+  const statusLabels = {
+    active: 'Abierta',
+    open: 'Abierta',
+    abierta: 'Abierta',
+    evaluation: 'En evaluación',
+    evaluating: 'En evaluación',
+    'under evaluation': 'En evaluación',
+    'in evaluation': 'En evaluación',
+    'in review': 'En evaluación',
+    review: 'En evaluación',
+    evaluacion: 'En evaluación',
+    'en evaluacion': 'En evaluación',
+    'en evaluación': 'En evaluación',
+    adjudicated: 'Adjudicada',
+    'under adjudication': 'Adjudicada',
+    'en adjudicacion': 'Adjudicada',
+    'en adjudicación': 'Adjudicada',
+    awarded: 'Adjudicada',
+    adjudicada: 'Adjudicada',
+  };
 
   return {
     id: licitation.id,
     title: licitation.title,
     organization: licitation.organization || 'Organismo no especificado',
     sector: licitation.sector || 'General',
-    status: licitation.status === 'active' ? 'Abierta' : licitation.status,
+    status: statusLabels[rawStatus] || String(licitation.status || 'Sin estado'),
     deadline: closingDate ? closingDate.toLocaleDateString('es-VE') : 'Sin fecha límite',
     daysLeft: closingDate ? Math.max(0, Math.ceil((closingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null,
     budget: Number.isFinite(budget) && budget > 0 ? new Intl.NumberFormat('es-VE', { maximumFractionDigits: 2 }).format(budget) : 'No especificado',

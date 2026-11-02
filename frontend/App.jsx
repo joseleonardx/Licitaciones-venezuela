@@ -6,6 +6,7 @@ import './src/responsive.css';
 const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 const validatePassword = (value) => value.trim().length >= 6;
 const validateRif = (value) => /^[JEVGCP]-\d{8}-\d$/i.test(value.trim());
+const statusClassName = (status) => status.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
 const APP_STATE_KEY = 'licitaciones-vzla-app-state';
 const APP_THEME_KEY = 'licitaciones-vzla-theme';
 
@@ -261,7 +262,7 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
       const query = searchText.toLowerCase();
       const matchesSearch = !query || item.title.toLowerCase().includes(query) || item.organization.toLowerCase().includes(query) || item.id.toLowerCase().includes(query);
       const matchesSector = selectedSector === 'Todos' || item.sector === selectedSector;
-      const matchesStatus = selectedStatus === 'Todas' || (selectedStatus === 'Abiertas' && item.status === 'Abierta');
+      const matchesStatus = selectedStatus === 'Todas' || item.status === selectedStatus;
       return matchesSearch && matchesSector && matchesStatus;
     });
   }, [licitaciones, searchText, selectedSector, selectedStatus]);
@@ -281,7 +282,7 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
           ))}
         </div>
         <div style={styles.statusRow}>
-          {['Todas', 'Abiertas'].map((status) => (
+          {['Todas', 'Abierta', 'En evaluación', 'Adjudicada'].map((status) => (
             <button key={status} type="button" style={{ ...styles.statusChip, ...(selectedStatus === status ? styles.statusChipActive : {}) }} onClick={() => setSelectedStatus(status)}>{status}</button>
           ))}
         </div>
@@ -293,21 +294,39 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
         {!loading && filtered.length === 0 && !error ? <div style={styles.emptyState}><div style={styles.emptyTitle}>No hay resultados</div><div style={styles.emptyText}>Prueba con otra palabra clave o cambia los filtros.</div></div> : null}
 
         {filtered.map((item) => (
-          <div key={item.id} style={styles.card} onClick={() => onOpenDetail(item)} role="button" tabIndex={0} onKeyDown={(event) => {
+          <article key={item.id} className="tender-card" onClick={() => onOpenDetail(item)} role="button" tabIndex={0} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               onOpenDetail(item);
             }
           }}>
-            <div style={styles.cardTop}><span style={styles.code}>{item.id}</span><span style={{ ...styles.statusPill, ...(item.status === 'Abierta' ? styles.statusOpen : styles.statusReview) }}>{item.status}</span></div>
-            <div style={styles.cardTitle}>{item.title}</div>
-            <div style={styles.cardMetaRow}><Building2 size={13} color="var(--text-accent)" /><span style={styles.cardMetaText}>{item.organization}</span></div>
-            <div className="card-info-grid" style={styles.cardInfoGrid}>
-              <div style={styles.cardInfoBox}><div style={styles.infoLabel}>Ubicación</div><div style={styles.infoValue}>{item.location}</div></div>
-              <div style={styles.cardInfoBox}><div style={styles.infoLabel}>Monto</div><div style={styles.infoValueGreen}>{item.budget}</div></div>
+            <div className="tender-card__header">
+              <span className="tender-card__number">N.º {item.id}</span>
+              <span className={`tender-card__status tender-card__status--${statusClassName(item.status)}`}>{item.status}</span>
             </div>
-            <div style={styles.cardFooter}><span style={styles.footerLeft}>{item.daysLeft === null ? item.deadline : `Cierra en ${item.daysLeft} días`}</span><span style={styles.footerLink}>Ver pliego</span></div>
-          </div>
+            <div className="tender-card__work">
+              <span className="tender-card__label">Tipo de trabajo requerido</span>
+              <h3 className="tender-card__title">{item.title}</h3>
+            </div>
+            <div className="tender-card__organization">
+              <Building2 size={16} aria-hidden="true" />
+              <span>{item.organization}</span>
+            </div>
+            <div className="tender-card__facts">
+              <div className="tender-card__fact">
+                <span className="tender-card__label">Ubicación</span>
+                <span className="tender-card__fact-value">{item.location}</span>
+              </div>
+              <div className="tender-card__fact tender-card__fact--budget">
+                <span className="tender-card__label">Monto base estimado</span>
+                <span className="tender-card__fact-value">{item.budget}</span>
+              </div>
+            </div>
+            <div className="tender-card__footer">
+              <span className="tender-card__deadline">{item.daysLeft === null ? item.deadline : `Cierra en ${item.daysLeft} días (${item.deadline})`}</span>
+              <span className="tender-card__link">Ver pliego <span aria-hidden="true">›</span></span>
+            </div>
+          </article>
         ))}
       </div>
     </div>
@@ -371,7 +390,7 @@ function DetailScreen({ licitacion, onBack, onApply, session, theme, onToggleThe
       <div style={styles.detailContent}>
         <div className="detail-toolbar"><button type="button" onClick={onBack} style={styles.backButton}><ArrowLeft size={18} color="var(--text-primary)" /> Volver</button><ThemeToggle theme={theme} onToggleTheme={onToggleTheme} /></div>
         <div style={styles.detailCard}>
-          <div style={styles.cardTop}><span style={styles.code}>{licitacion.id}</span><span style={{ ...styles.statusPill, ...(licitacion.status === 'Abierta' ? styles.statusOpen : styles.statusReview) }}>{licitacion.status}</span></div>
+          <div style={styles.cardTop}><span style={styles.code}>{licitacion.id}</span><span className={`tender-card__status tender-card__status--${statusClassName(licitacion.status)}`}>{licitacion.status}</span></div>
           <div style={styles.detailTitle}>{licitacion.title}</div>
           <div style={styles.detailOrg}>{licitacion.organization}</div>
           <div className="detail-grid" style={styles.detailGrid}>
@@ -650,8 +669,6 @@ const styles = {
   webSidebarValue: { color: 'var(--text-primary)', fontSize: 28, fontWeight: 800 },
   webSidebarValueSmall: { color: 'var(--text-accent)', fontSize: 15, fontWeight: 700 },
   webSidebarMeta: { color: 'var(--text-secondary)', fontSize: 11, marginTop: 8 },
-  webMenuItem: { width: '100%', background: 'var(--app-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 10, padding: '10px 12px', marginTop: 8, textAlign: 'left', cursor: 'pointer' },
-  webMenuItemActive: { background: 'var(--accent-strong)', color: 'var(--on-accent)', borderColor: 'var(--accent-hover)' },
   mainPane: { background: 'var(--app-bg)', padding: 20 },
   spaceY: { display: 'grid', gap: 14 },
   kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 },
@@ -668,17 +685,14 @@ const styles = {
   filterCounter: { color: 'var(--text-muted)', fontSize: 9 },
   horizontalRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   chip: { background: 'var(--app-bg)', border: '1px solid var(--border-strong)', borderRadius: 10, padding: '7px 10px', color: 'var(--text-secondary)', cursor: 'pointer' },
-  chipActive: { background: 'var(--accent)', borderColor: 'var(--accent-hover)', color: 'var(--on-accent)' },
+  chipActive: { background: 'var(--accent)', border: '1px solid var(--accent-hover)', color: 'var(--on-accent)' },
   statusRow: { display: 'flex', gap: 8, marginTop: 10 },
   statusChip: { background: 'var(--app-bg)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-muted)', padding: '5px 8px', cursor: 'pointer' },
-  statusChipActive: { borderColor: 'var(--text-accent)', background: 'var(--surface)', color: 'var(--text-accent)' },
+  statusChipActive: { border: '1px solid var(--text-accent)', background: 'var(--surface)', color: 'var(--text-accent)' },
   cardList: { display: 'grid', gap: 12 },
   card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 12, cursor: 'pointer' },
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   code: { background: 'var(--app-bg)', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: 9, borderRadius: 8, padding: '3px 6px', border: '1px solid var(--border-strong)' },
-  statusPill: { borderRadius: 999, padding: '4px 8px', fontSize: 9, fontWeight: 700 },
-  statusOpen: { background: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)' },
-  statusReview: { background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)' },
   cardTitle: { color: 'var(--text-primary)', fontSize: 15, fontWeight: 800, marginBottom: 8 },
   cardMetaRow: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 },
   cardMetaText: { color: 'var(--text-accent)', fontSize: 11 },
