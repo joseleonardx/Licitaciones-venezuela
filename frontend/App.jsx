@@ -13,15 +13,15 @@ const APP_THEME_KEY = 'licitaciones-vzla-theme';
 function getInstitutionLogo(organization) {
   const normalizedName = organization.toLocaleLowerCase('es');
   const logoFiles = [
-    { match: 'pdvsa', file: 'pdvsa-petroleo-sa.png' },
-    { match: 'salud', file: 'mpps-salud.png' },
-    { match: 'metro de caracas', file: 'metro-de-caracas.png' },
-    { match: 'cantv', file: 'cantv-telecomunicaciones.png' },
-    { match: 'alimentaci', file: 'ministerio-alimentacion.png' },
+    { match: 'pdvsa', file: 'PDVSA-Logo.wine.png' },
+    { match: 'salud', file: 'Ministerio del Poder Popular para la Salud (MPPS).jpg' },
+    { match: 'metro de caracas', file: 'Metro de caracas.jpg' },
+    { match: 'cantv', file: 'Cantv_logo.png' },
+    { match: 'alimentaci', file: 'ministerio-del-poder-popular-para-la-alimentacion-logo-png_seeklogo-246331.png' },
   ];
   const logo = logoFiles.find(({ match }) => normalizedName.includes(match));
 
-  return logo ? `/institutions/${logo.file}` : null;
+  return logo ? `/institutions/${encodeURIComponent(logo.file).replace(/%2F/g, '/')}` : null;
 }
 
 function InstitutionLogo({ organization }) {
