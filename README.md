@@ -191,6 +191,8 @@ En Vercel, configura `VITE_API_URL` como la URL HTTPS de Render. Si cambian los 
 
 Antes de usar la API de producción, aplica las migraciones con `npm run migrate` desde un entorno que tenga configurada la `DATABASE_URL` de producción.
 
+La migración `005_replace_production_test_licitations.sql` sustituye únicamente los 11 registros de prueba identificados en la base de producción el 2 de noviembre de 2026 por las cinco licitaciones institucionales de referencia. Verifica que exista un respaldo antes de ejecutarla: las postulaciones vinculadas a esos 11 registros se eliminan por la regla `ON DELETE CASCADE`; las cuentas de empresas y los demás registros no se modifican. La migración se aborta sin cambios si no encuentra exactamente los 11 identificadores revisados.
+
 ## Endpoints principales
 
 ### Salud del sistema

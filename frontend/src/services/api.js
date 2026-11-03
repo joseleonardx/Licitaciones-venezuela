@@ -104,7 +104,7 @@ const organizationReferenceData = [
       attachments: [
         { name: 'Requerimientos_Logistica_Alimentos.pdf', url: null },
       ],
-      closingDate: '2026-10-25T12:00:00.000Z',
+      closingDate: '2027-01-15T16:00:00.000Z',
     },
   },
 ];
