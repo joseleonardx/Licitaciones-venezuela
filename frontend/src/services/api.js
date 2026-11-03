@@ -7,6 +7,7 @@ const organizationReferenceData = [
     title: 'Mantenimiento Mayor de Turbocompresores en Complejo Jusepín',
     location: 'Monagas, Venezuela',
     budget: 480000,
+    sector: 'Infraestructura',
     details: {
       referenceCode: 'LIC-PDVSA-2026-042',
       description: 'Inspección general, reemplazo de álabes y pruebas dinámicas de alineación para unidades de compresión de gas natural.',
@@ -29,6 +30,7 @@ const organizationReferenceData = [
     title: 'Dotación de Equipos Quirúrgicos para Red Hospitalaria Central',
     location: 'Caracas, Distrito Capital',
     budget: 210000,
+    sector: 'Salud',
     details: {
       referenceCode: 'LIC-MPPS-2026-118',
       description: 'Adquisición de 12 mesas de anestesia digital, electrobisturíes de alta frecuencia y monitores de signos vitales multiparámetro.',
@@ -50,6 +52,7 @@ const organizationReferenceData = [
     title: 'Rehabilitación Integral de Sistema de Rodamiento Línea 1',
     location: 'Caracas, Venezuela',
     budget: 850000,
+    sector: 'Construcción',
     details: {
       referenceCode: 'LIC-METRO-2026-009',
       description: 'Sustitución de balasto, rieles y sistemas de electrificación en el tramo Propatria - Palo Verde.',
@@ -69,6 +72,7 @@ const organizationReferenceData = [
     title: 'Despliegue de Red Fibra Óptica GPON Sector Norte',
     location: 'Maracaibo, Zulia',
     budget: 175000,
+    sector: 'Tecnología',
     details: {
       referenceCode: 'LIC-CANTV-2026-205',
       description: 'Tendido de 45 km de fibra óptica aérea y canalizada con habilitación de 12 nodos OLT para acceso de alta velocidad.',
@@ -89,6 +93,7 @@ const organizationReferenceData = [
     title: 'Suministro de Granolas e Insumos Agroindustriales Q1 2027',
     location: 'Barquisimeto, Lara',
     budget: 320000,
+    sector: 'Alimentación',
     details: {
       referenceCode: 'LIC-MINAL-2026-088',
       description: 'Procesamiento, empaque y distribución logística de harina de maíz precocida y rubros de la cesta básica.',
@@ -116,6 +121,23 @@ function normalizeText(value) {
 function getReferenceData(licitation) {
   const organization = normalizeText(licitation.organization);
   return organizationReferenceData.find(({ matches }) => matches.some((match) => organization.includes(match)));
+}
+
+function getEconomicSector(value, referenceData) {
+  const rawSector = String(value || '').trim();
+  const normalizedSector = normalizeText(rawSector);
+
+  if (!rawSector || normalizedSector === 'general') {
+    return referenceData?.sector || 'Otros';
+  }
+
+  if (normalizedSector.includes('infra')) return 'Infraestructura';
+  if (normalizedSector.includes('salud') || normalizedSector.includes('medic')) return 'Salud';
+  if (normalizedSector.includes('constru') || normalizedSector.includes('obra')) return 'Construcción';
+  if (normalizedSector.includes('tecnolog') || normalizedSector.includes('telecom') || normalizedSector.includes('informat')) return 'Tecnología';
+  if (normalizedSector.includes('aliment') || normalizedSector.includes('agro')) return 'Alimentación';
+
+  return rawSector;
 }
 
 export async function apiRequest(path, { token, ...options } = {}) {
@@ -194,7 +216,7 @@ export function mapLicitation(licitation) {
     id: licitation.id,
     title,
     organization: licitation.organization || 'Organismo no especificado',
-    sector: licitation.sector || 'General',
+    sector: getEconomicSector(licitation.sector, referenceData),
     status: statusLabels[rawStatus] || String(licitation.status || 'Sin estado'),
     deadline: closingDate ? closingDate.toLocaleDateString('es-VE') : 'Sin fecha límite',
     receiptLimit: closingDate

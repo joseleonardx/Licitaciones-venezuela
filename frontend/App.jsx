@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BriefcaseBusiness, Building2, CheckCircle2, ClipboardList, Download, FileText, Moon, Search, ShieldCheck, Sparkles, Sun, UploadCloud } from 'lucide-react';
+import { ArrowLeft, BarChart3, BriefcaseBusiness, Building2, CheckCircle2, ClipboardList, Download, FileText, Filter, Moon, Plus, Search, Share, ShieldCheck, Smartphone, Sparkles, Sun, UploadCloud, X } from 'lucide-react';
 import { apiRequest, mapLicitation } from './src/services/api.js';
 import './src/responsive.css';
 
@@ -7,8 +7,24 @@ const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 const validatePassword = (value) => value.trim().length >= 6;
 const validateRif = (value) => /^[JEVGCP]-\d{8}-\d$/i.test(value.trim());
 const statusClassName = (status) => status.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+const bidStatusLabel = (status) => {
+  const normalizedStatus = String(status || 'submitted').trim().toLowerCase().replace(/[_-]+/g, ' ');
+  const labels = {
+    submitted: 'Enviada',
+    pending: 'Pendiente',
+    'in review': 'En revisión',
+    reviewing: 'En revisión',
+    approved: 'Aprobada',
+    awarded: 'Adjudicada',
+    rejected: 'Rechazada',
+  };
+
+  return labels[normalizedStatus] || status || 'Enviada';
+};
 const APP_STATE_KEY = 'licitaciones-vzla-app-state';
 const APP_THEME_KEY = 'licitaciones-vzla-theme';
+const INSTALL_PROMPT_DISMISSED_KEY = 'licitaciones-vzla-install-dismissed';
+const PRIMARY_SECTOR_FILTERS = ['Infraestructura', 'Salud', 'Construcción', 'Tecnología'];
 
 function getInstitutionLogo(organization) {
   const normalizedName = organization.toLocaleLowerCase('es');
@@ -57,6 +73,7 @@ function readPersistedAppState() {
     const session = typeof parsedState.session?.token === 'string' ? parsedState.session : null;
     const validScreens = ['login', 'register', 'home', 'detail', 'apply'];
     let screen = validScreens.includes(parsedState.screen) ? parsedState.screen : 'login';
+    const validTabs = ['home', 'metrics', 'applications'];
     const selectedLicitacion = typeof parsedState.selectedLicitacion?.id === 'string'
       ? parsedState.selectedLicitacion
       : null;
@@ -68,7 +85,7 @@ function readPersistedAppState() {
       screen,
       session,
       selectedLicitacion,
-      activeTab: parsedState.activeTab === 'applications' ? 'applications' : 'home',
+      activeTab: validTabs.includes(parsedState.activeTab) ? parsedState.activeTab : 'home',
     };
   } catch (error) {
     console.error('No se pudo restaurar el estado guardado de la aplicación.', error);
@@ -85,6 +102,131 @@ function ThemeToggle({ theme, onToggleTheme }) {
       <Icon size={17} aria-hidden="true" />
       <span>{theme === 'light' ? 'Oscuro' : 'Claro'}</span>
     </button>
+  );
+}
+
+function getAuthenticatedDisplayName(session) {
+  const candidates = [
+    session.razonSocial,
+    session.name,
+    session.fullName,
+    session.username,
+    session.userName,
+    session.email?.split('@')[0],
+  ];
+
+  const placeholderValues = new Set(['vista previa', 'preview', 'empresa', 'usuario', 'cuenta autenticada']);
+  return candidates.find((value) => (
+    typeof value === 'string'
+    && value.trim()
+    && !placeholderValues.has(value.trim().toLocaleLowerCase('es'))
+  ))?.trim() || 'Nombre no disponible';
+}
+
+function InstallPwaBanner() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [installError, setInstallError] = useState('');
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) === 'true';
+    } catch (error) {
+      console.error('No se pudo leer el estado de la invitación de instalación.', error);
+      return false;
+    }
+  });
+  const [installed, setInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredPrompt(event);
+    };
+    const handleAppInstalled = () => {
+      setInstalled(true);
+      setInstructionsOpen(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const dismissBanner = () => {
+    try {
+      sessionStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, 'true');
+    } catch (error) {
+      console.error('No se pudo guardar el cierre de la invitación de instalación.', error);
+    }
+    setDismissed(true);
+  };
+
+  const handleInstall = async () => {
+    setInstructionsOpen(true);
+    if (!deferredPrompt) return;
+
+    const promptEvent = deferredPrompt;
+    setDeferredPrompt(null);
+    setInstallError('');
+
+    try {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+    } catch (error) {
+      console.error('No se pudo iniciar la instalación de la PWA.', error);
+      setInstallError('No se pudo abrir la instalación automática. Sigue los pasos para agregar la app desde el menú del navegador.');
+    }
+  };
+
+  if (dismissed || installed) return null;
+
+  return (
+    <aside className="install-pwa" aria-label="Instalar aplicación móvil">
+      <div className="install-pwa__banner">
+        <div className="install-pwa__identity">
+          <span className="install-pwa__icon"><Smartphone size={17} aria-hidden="true" /></span>
+          <span className="install-pwa__copy">
+            <strong>Instalar App Móvil PWA</strong>
+            <small>Acceso rápido sin tiendas de apps</small>
+          </span>
+        </div>
+        <div className="install-pwa__actions">
+          <button className="install-pwa__install" type="button" onClick={handleInstall}>Instalar</button>
+          <button className="install-pwa__close" type="button" onClick={dismissBanner} aria-label="Cerrar invitación de instalación" title="Cerrar">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      {instructionsOpen && (
+        <div className="install-pwa__instructions">
+          <div className="install-pwa__instructions-heading">
+            <strong>Pasos para instalar en tu celular:</strong>
+            <button className="install-pwa__close" type="button" onClick={() => setInstructionsOpen(false)} aria-label="Cerrar instrucciones" title="Cerrar instrucciones">
+              <X size={15} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="install-pwa__steps">
+            <div>
+              <strong><Share size={12} aria-hidden="true" /> En iOS (Safari):</strong>
+              <span>1. Toca “Compartir”.</span>
+              <span>2. “Agregar a inicio”.</span>
+            </div>
+            <div>
+              <strong><Plus size={12} aria-hidden="true" /> En Android (Chrome):</strong>
+              <span>1. Menú (⋮)</span>
+              <span>2. “Instalar aplicación” o “Agregar a pantalla principal”.</span>
+            </div>
+          </div>
+          {installError && <p className="install-pwa__error" role="status">{installError}</p>}
+        </div>
+      )}
+    </aside>
   );
 }
 
@@ -272,10 +414,30 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
   const [searchText, setSearchText] = useState('');
   const [selectedSector, setSelectedSector] = useState('Todos');
   const [selectedStatus, setSelectedStatus] = useState('Todas');
+  const accountDisplayName = getAuthenticatedDisplayName(session);
   const [licitaciones, setLicitaciones] = useState([]);
   const [submittedProposals, setSubmittedProposals] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [applicationsError, setApplicationsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const loadApplications = async () => {
+    setApplicationsLoading(true);
+    setApplicationsError('');
+
+    try {
+      const bids = await apiRequest('/bids/my-bids', { token: session.token });
+      if (!Array.isArray(bids)) {
+        throw new Error('La API devolvió un historial de postulaciones con formato inesperado.');
+      }
+      setSubmittedProposals(bids);
+    } catch (err) {
+      setApplicationsError(err.message || 'No se pudo cargar el historial de postulaciones.');
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -286,13 +448,6 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
       setLicitaciones(licitacionesData.map(mapLicitation));
     } catch (err) {
       setError(err.message || 'No se pudo cargar licitaciones');
-    }
-
-    try {
-      const bids = await apiRequest('/bids/my-bids', { token: session.token });
-      setSubmittedProposals(Array.isArray(bids) ? bids : []);
-    } catch (err) {
-      setError((prev) => prev ? `${prev} | ${err.message}` : err.message);
     } finally {
       setLoading(false);
     }
@@ -300,6 +455,7 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
 
   useEffect(() => {
     loadDashboard();
+    loadApplications();
   }, [session.token]);
 
   const filtered = useMemo(() => {
@@ -312,6 +468,47 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
     });
   }, [licitaciones, searchText, selectedSector, selectedStatus]);
 
+  const sectorOptions = useMemo(() => {
+    const additionalSectors = [...new Set(licitaciones.map((item) => item.sector))]
+      .filter((sector) => sector && !PRIMARY_SECTOR_FILTERS.includes(sector))
+      .sort((first, second) => first.localeCompare(second, 'es'));
+
+    return ['Todos', ...PRIMARY_SECTOR_FILTERS, ...additionalSectors];
+  }, [licitaciones]);
+
+  const metrics = useMemo(() => {
+    const sectors = new Map();
+    const statuses = new Map();
+    let budgetTotal = 0;
+    let budgetCount = 0;
+
+    licitaciones.forEach((licitation) => {
+      sectors.set(licitation.sector, (sectors.get(licitation.sector) || 0) + 1);
+      statuses.set(licitation.status, (statuses.get(licitation.status) || 0) + 1);
+
+      if (Number.isFinite(licitation.budgetAmount) && licitation.budgetAmount > 0) {
+        budgetTotal += licitation.budgetAmount;
+        budgetCount += 1;
+      }
+    });
+
+    const getDistribution = (entries) => [...entries.entries()]
+      .map(([label, count]) => ({
+        label,
+        count,
+        percentage: licitaciones.length ? Math.round((count / licitaciones.length) * 100) : 0,
+      }))
+      .sort((first, second) => second.count - first.count || first.label.localeCompare(second.label, 'es'));
+
+    return {
+      total: licitaciones.length,
+      budgetTotal,
+      budgetCount,
+      sectors: getDistribution(sectors),
+      statuses: getDistribution(statuses),
+    };
+  }, [licitaciones]);
+
   const renderCatalog = () => (
     <div style={styles.spaceY}>
       <div className="kpi-grid" style={styles.kpiGrid}>
@@ -319,16 +516,35 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
         <div style={styles.kpiCard}><ShieldCheck size={16} color="var(--success-text)" /><div style={styles.kpiTextWrap}><div style={styles.kpiLabel}>Postulaciones</div><div style={styles.kpiValueGreen}>{submittedProposals.length}</div></div></div>
       </div>
 
-      <div style={styles.filterGroup}>
-        <div style={styles.filterHeaderRow}><span style={styles.filterHeader}>Sector económico</span><span style={styles.filterCounter}>{filtered.length} encontrados</span></div>
-        <div style={styles.horizontalRow}>
-          {['Todos', 'General'].map((sector) => (
-            <button key={sector} type="button" style={{ ...styles.chip, ...(selectedSector === sector ? styles.chipActive : {}) }} onClick={() => setSelectedSector(sector)}>{sector}</button>
+      <div className="sector-filter">
+        <div className="sector-filter__header">
+          <span className="sector-filter__title"><Filter size={13} aria-hidden="true" /> Sector económico</span>
+          <span className="sector-filter__count" aria-live="polite">{filtered.length} encontrados</span>
+        </div>
+        <div className="sector-filter__options" role="group" aria-label="Filtrar por sector económico">
+          {sectorOptions.map((sector) => (
+            <button
+              key={sector}
+              className={`sector-filter__option${selectedSector === sector ? ' sector-filter__option--active' : ''}`}
+              type="button"
+              aria-pressed={selectedSector === sector}
+              onClick={() => setSelectedSector(sector)}
+            >
+              {sector}
+            </button>
           ))}
         </div>
-        <div style={styles.statusRow}>
+        <div className="sector-filter__statuses" role="group" aria-label="Filtrar por estado">
           {['Todas', 'Abierta', 'En evaluación', 'Adjudicada'].map((status) => (
-            <button key={status} type="button" style={{ ...styles.statusChip, ...(selectedStatus === status ? styles.statusChipActive : {}) }} onClick={() => setSelectedStatus(status)}>{status}</button>
+            <button
+              key={status}
+              className={`sector-filter__status${selectedStatus === status ? ' sector-filter__status--active' : ''}`}
+              type="button"
+              aria-pressed={selectedStatus === status}
+              onClick={() => setSelectedStatus(status)}
+            >
+              {status}
+            </button>
           ))}
         </div>
       </div>
@@ -379,10 +595,13 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
 
   const renderApplications = () => (
     <div style={styles.spaceY}>
-      <div style={styles.listHeaderRow}><div style={styles.sectionTitle}>Historial de postulaciones</div><div style={styles.metaText}>{submittedProposals.length} enviadas</div></div>
-      {submittedProposals.length === 0 ? <div style={styles.emptyState}><div style={styles.emptyText}>Todavía no has enviado postulaciones.</div></div> : submittedProposals.map((app) => (
+      <div style={styles.listHeaderRow}><div style={styles.sectionTitle}>Historial de postulaciones</div><div style={styles.metaText}>{applicationsLoading ? 'Cargando…' : `${submittedProposals.length} enviadas`}</div></div>
+      {applicationsLoading && <div style={styles.emptyState}><div style={styles.emptyText}>Cargando historial de postulaciones...</div></div>}
+      {!applicationsLoading && applicationsError && <div style={styles.emptyState}><div style={styles.emptyTitle}>No se pudo cargar el historial</div><div style={styles.emptyText}>{applicationsError}</div><button type="button" style={styles.primaryButton} onClick={loadApplications}>Reintentar</button></div>}
+      {!applicationsLoading && !applicationsError && submittedProposals.length === 0 ? <div style={styles.emptyState}><div style={styles.emptyText}>Todavía no has enviado postulaciones.</div></div> : null}
+      {!applicationsLoading && !applicationsError && submittedProposals.map((app) => (
         <div key={app.id || `${app.licitationId}-${app.submittedAt}`} style={styles.applicationCard}>
-          <div style={styles.appHeaderRow}><span style={styles.appId}>{app.id}</span><span style={styles.appStatus}>{app.status || 'Enviada'}</span></div>
+          <div style={styles.appHeaderRow}><span style={styles.appId}>{app.id}</span><span style={styles.appStatus}>{bidStatusLabel(app.status)}</span></div>
           <div style={styles.appTitle}>{app.licitationTitle || app.licitationId}</div>
           <div style={styles.appEntity}>Enviada: {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString('es-VE') : 'Fecha no disponible'}</div>
           <div style={styles.appHashBox}><div style={styles.hashLabel}>Archivo de propuesta</div><div style={styles.hashValueSmall}>{app.pdfUrl || 'Sin referencia disponible'}</div></div>
@@ -391,18 +610,99 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
     </div>
   );
 
+  const renderMetrics = () => (
+    <section className="metrics-dashboard" aria-labelledby="metrics-title">
+      <header className="metrics-dashboard__header">
+        <h1 id="metrics-title"><BarChart3 size={18} aria-hidden="true" /> Métricas de licitaciones</h1>
+        <span>Datos del catálogo</span>
+      </header>
+
+      <div className="metrics-dashboard__summary">
+        <article className="metrics-summary-card">
+          <span>Licitaciones disponibles</span>
+          <strong>{metrics.total.toLocaleString('es-VE')}</strong>
+          <small>Registros del catálogo cargados</small>
+        </article>
+        <article className="metrics-summary-card metrics-summary-card--budget">
+          <span>Presupuesto referencial</span>
+          <strong>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(metrics.budgetTotal)}</strong>
+          <small>{metrics.budgetCount} de {metrics.total} con monto disponible</small>
+        </article>
+      </div>
+
+      <section className="metrics-panel" aria-labelledby="metrics-sector-title">
+        <h2 id="metrics-sector-title">Distribución de licitaciones por sector</h2>
+        {loading && metrics.total === 0
+          ? <p className="metrics-panel__empty">Cargando datos del catálogo…</p>
+          : metrics.sectors.length === 0
+            ? <p className="metrics-panel__empty">No hay licitaciones disponibles para calcular esta distribución.</p>
+            : <ul className="metrics-bars">
+              {metrics.sectors.map((sector, index) => (
+                <li className="metrics-bars__item" key={sector.label}>
+                  <div className="metrics-bars__label">
+                    <span>{sector.label}</span>
+                    <strong>{sector.percentage}% <small>({sector.count})</small></strong>
+                  </div>
+                  <div
+                    className="metrics-bars__track"
+                    role="progressbar"
+                    aria-label={`${sector.label}: ${sector.count} licitaciones`}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow={sector.percentage}
+                  >
+                    <span className={`metrics-bars__fill metrics-bars__fill--${index % 5}`} style={{ width: `${sector.percentage}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>}
+      </section>
+
+      <section className="metrics-panel metrics-panel--statuses" aria-labelledby="metrics-status-title">
+        <h2 id="metrics-status-title">Estado de las licitaciones</h2>
+        {metrics.statuses.length === 0
+          ? <p className="metrics-panel__empty">Los estados se mostrarán cuando el catálogo termine de cargar.</p>
+          : <ul className="metrics-statuses">
+            {metrics.statuses.map((status) => (
+              <li key={status.label}>
+                <span>{status.label}</span>
+                <strong>{status.count}</strong>
+              </li>
+            ))}
+          </ul>}
+      </section>
+    </section>
+  );
+
   return (
     <div className="app-screen home-screen" style={styles.screen}>
       <div className="home-header" style={styles.headerBar}>
-        <div style={styles.brandWrap}>
-          <div style={styles.brandLogo}>LV</div>
-          <div>
-            <div style={styles.brandTitle}>Licitaciones VZLA</div>
-            <div style={styles.brandSubtitle}>Panel de compras</div>
+        <div className="home-header__brand">
+          <div className="home-header__logo">LV</div>
+          <div className="home-header__brand-copy">
+            <div className="home-header__brand-title">
+              <span>Licitaciones VZLA</span>
+              <span className="home-header__pwa">PWA</span>
+            </div>
+            <div className="home-header__brand-subtitle">República Bolivariana de Venezuela</div>
           </div>
         </div>
-        <div style={styles.headerRight}><ThemeToggle theme={theme} onToggleTheme={onToggleTheme} /><div className="web-header-chip" style={styles.webHeaderChip}>Online</div><button type="button" onClick={onLogout} style={styles.logoutButton}>Salir</button></div>
+        <div className="home-header__right">
+          <div className="home-header__account">
+            <span className="home-header__rif">RIF: {session.rif || 'No registrado'}</span>
+            <span className="home-header__company" title={accountDisplayName}>
+              {accountDisplayName}
+            </span>
+          </div>
+          <div className="home-header__actions">
+            <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
+            <div className="web-header-chip" style={styles.webHeaderChip}>Online</div>
+            <button className="logout-button" type="button" onClick={onLogout} style={styles.logoutButton}>Salir</button>
+          </div>
+        </div>
       </div>
+
+      <InstallPwaBanner />
 
       <div className="home-workspace" style={styles.webWorkspace}>
         <aside className="home-sidebar" style={styles.sidebar}>
@@ -413,6 +713,9 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
             <button className="desktop-nav-button" type="button" aria-current={activeTab === 'home' ? 'page' : undefined} onClick={() => onChangeTab('home')}>
               <BriefcaseBusiness size={18} aria-hidden="true" /><span>Catálogo</span>
             </button>
+            <button className="desktop-nav-button" type="button" aria-current={activeTab === 'metrics' ? 'page' : undefined} onClick={() => onChangeTab('metrics')}>
+              <BarChart3 size={18} aria-hidden="true" /><span>Métricas</span>
+            </button>
             <button className="desktop-nav-button" type="button" aria-current={activeTab === 'applications' ? 'page' : undefined} onClick={() => onChangeTab('applications')}>
               <ClipboardList size={18} aria-hidden="true" /><span>Postulaciones</span>
             </button>
@@ -420,8 +723,11 @@ function HomeScreen({ session, onLogout, onOpenDetail, activeTab, onChangeTab, t
         </aside>
 
         <main className="home-main" style={styles.mainPane}>
-          <div style={styles.searchBox}><Search size={16} color="var(--text-muted)" /><input style={styles.searchInput} value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Buscar licitación, entidad o código..." /></div>
+          {activeTab === 'home' && (
+            <div style={styles.searchBox}><Search size={16} color="var(--text-muted)" /><input style={styles.searchInput} value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Buscar licitación, entidad o código..." /></div>
+          )}
           {activeTab === 'home' && renderCatalog()}
+          {activeTab === 'metrics' && renderMetrics()}
           {activeTab === 'applications' && renderApplications()}
         </main>
       </div>
@@ -717,7 +1023,7 @@ export default function App() {
   };
 
   const submitBid = () => {
-    updateAppState((current) => ({ ...current, screen: 'home', selectedLicitacion: null }));
+    updateAppState((current) => ({ ...current, screen: 'home', selectedLicitacion: null, activeTab: 'applications' }));
   };
 
   if (screen === 'login') return <LoginScreen theme={theme} onToggleTheme={toggleTheme} onLogin={handleLogin} onGoToRegister={() => updateAppState((current) => ({ ...current, screen: 'register' }))} />;
@@ -806,16 +1112,6 @@ const styles = {
   kpiValueGreen: { color: 'var(--success-text)', fontSize: 14, fontWeight: 800, marginTop: 3 },
   searchBox: { display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '8px 12px', gap: 8, marginTop: 14 },
   searchInput: { flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 14, width: '100%', outline: 'none' },
-  filterGroup: { background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 12 },
-  filterHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  filterHeader: { color: 'var(--text-secondary)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5 },
-  filterCounter: { color: 'var(--text-muted)', fontSize: 9 },
-  horizontalRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  chip: { background: 'var(--app-bg)', border: '1px solid var(--border-strong)', borderRadius: 10, padding: '7px 10px', color: 'var(--text-secondary)', cursor: 'pointer' },
-  chipActive: { background: 'var(--accent)', border: '1px solid var(--accent-hover)', color: 'var(--on-accent)' },
-  statusRow: { display: 'flex', gap: 8, marginTop: 10 },
-  statusChip: { background: 'var(--app-bg)', border: '1px solid var(--border-strong)', borderRadius: 8, color: 'var(--text-muted)', padding: '5px 8px', cursor: 'pointer' },
-  statusChipActive: { border: '1px solid var(--text-accent)', background: 'var(--surface)', color: 'var(--text-accent)' },
   cardList: { display: 'grid', gap: 12 },
   card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 12, cursor: 'pointer' },
   cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
